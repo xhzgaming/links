@@ -16,6 +16,7 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0a0a0f; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 24px; color: #e5e7eb; }
         .container { max-width: 420px; width: 100%; text-align: center; }
         .profile { margin-bottom: 36px; }
+        .avatar { width: 128px; height: 128px; border-radius: 50%; object-fit: cover; border: 3px solid #d946ef; box-shadow: 0 0 20px rgba(217, 70, 239, 0.5); margin: 0 auto 20px; display: block; background: #1a1a24; }
         .name { font-size: 26px; font-weight: 700; margin-bottom: 6px; color: #fff; }
         .bio { font-size: 15px; color: #9ca3af; line-height: 1.5; max-width: 320px; margin: 0 auto; }
         .links { display: flex; flex-direction: column; gap: 10px; }
@@ -35,11 +36,14 @@
         .add-btn, .save-btn { background: #d946ef; color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 10px; }
         .close-btn { background: transparent; border: 1px solid #2a2a35; color: #9ca3af; padding: 10px; border-radius: 10px; width: 100%; margin-top: 8px; cursor: pointer; }
         .footer { margin-top: 36px; font-size: 12px; color: #4b5563; }
+        #photoInput { display: none; }
+        .photo-btn { background: #2a2a35; color: #fff; border: none; padding: 10px; border-radius: 10px; width: 100%; margin-top: 6px; cursor: pointer; font-size: 14px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="profile">
+            <img id="avatar" class="avatar" src="" alt="Perfil" style="display:none;">
             <h1 class="name" id="displayName">xhzyuri</h1>
             <p class="bio" id="displayBio">Gamer • Fortaleza, CE</p>
         </div>
@@ -49,7 +53,10 @@
     <button class="edit-btn" onclick="openModal()">⚙️</button>
     <div class="modal" id="modal">
         <div class="modal-content">
-            <h2>Personalizar links</h2>
+            <h2>Personalizar</h2>
+            <label>Foto de perfil</label>
+            <input type="file" id="photoInput" accept="image/*" onchange="handlePhoto(event)">
+            <button class="photo-btn" onclick="document.getElementById('photoInput').click()">Escolher foto</button>
             <label>Nome</label>
             <input type="text" id="editName" placeholder="Seu nome">
             <label>Bio</label>
@@ -62,16 +69,77 @@
         </div>
     </div>
     <script>
-        const defaultData = { name: "xhzyuri", bio: "Gamer • Fortaleza, CE", links: [ { title: "TikTok", url: "https://tiktok.com/", icon: "🎵" }, { title: "Twitch", url: "https://twitch.tv/", icon: "🎮" } ] };
+        const defaultData = { name: "xhzyuri", bio: "Gamer • Fortaleza, CE", photo: "", links: [ { title: "TikTok", url: "https://tiktok.com/", icon: "🎵" }, { title: "Twitch", url: "https://twitch.tv/", icon: "🎮" } ] };
         let memoryData = null;
         function loadData() { if (memoryData) return memoryData; try { const saved = localStorage.getItem('xhzyuriLinks'); return saved ? JSON.parse(saved) : defaultData; } catch (e) { return defaultData; } }
         function saveData(data) { memoryData = data; try { localStorage.setItem('xhzyuriLinks', JSON.stringify(data)); } catch (e) {} }
-        function render() { const data = loadData(); document.getElementById('displayName').textContent = data.name; document.getElementById('displayBio').innerHTML = data.bio.replace(/\n/g, '<br>'); const container = document.getElementById('linksContainer'); container.innerHTML = ''; data.links.forEach(link => { const a = document.createElement('a'); a.href = link.url; a.target = '_blank'; a.className = 'link-btn'; a.innerHTML = '<span class="icon">' + (link.icon || '🔗') + '</span> ' + link.title; container.appendChild(a); }); }
-        function openModal() { const data = loadData(); document.getElementById('editName').value = data.name; document.getElementById('editBio').value = data.bio; const editor = document.getElementById('linksEditor'); editor.innerHTML = ''; data.links.forEach((link, i) => { const div = document.createElement('div'); div.className = 'link-item'; div.innerHTML = '<input type="text" placeholder="Emoji" value="' + (link.icon || '🔗') + '" data-field="icon" style="width:60px;display:inline-block;margin-right:8px;"><input type="text" placeholder="Título" value="' + link.title + '" data-field="title"><input type="url" placeholder="URL (https://...)" value="' + link.url + '" data-field="url"><button class="remove-btn" onclick="removeLink(' + i + ')">Remover</button>'; editor.appendChild(div); }); document.getElementById('modal').classList.add('active'); }
+        function render() {
+            const data = loadData();
+            document.getElementById('displayName').textContent = data.name;
+            document.getElementById('displayBio').innerHTML = data.bio.replace(/\n/g, '<br>');
+            const avatar = document.getElementById('avatar');
+            if (data.photo) {
+                avatar.src = data.photo;
+                avatar.style.display = 'block';
+            } else {
+                avatar.style.display = 'none';
+            }
+            const container = document.getElementById('linksContainer');
+            container.innerHTML = '';
+            data.links.forEach(link => {
+                const a = document.createElement('a');
+                a.href = link.url;
+                a.target = '_blank';
+                a.className = 'link-btn';
+                a.innerHTML = '<span class="icon">' + (link.icon || '🔗') + '</span> ' + link.title;
+                container.appendChild(a);
+            });
+        }
+        function handlePhoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = loadData();
+                data.photo = e.target.result;
+                saveData(data);
+                render();
+            };
+            reader.readAsDataURL(file);
+        }
+        function openModal() {
+            const data = loadData();
+            document.getElementById('editName').value = data.name;
+            document.getElementById('editBio').value = data.bio;
+            const editor = document.getElementById('linksEditor');
+            editor.innerHTML = '';
+            data.links.forEach((link, i) => {
+                const div = document.createElement('div');
+                div.className = 'link-item';
+                div.innerHTML = '<input type="text" placeholder="Emoji" value="' + (link.icon || '🔗') + '" data-field="icon" style="width:60px;display:inline-block;margin-right:8px;"><input type="text" placeholder="Título" value="' + link.title + '" data-field="title"><input type="url" placeholder="URL (https://...)" value="' + link.url + '" data-field="url"><button class="remove-btn" onclick="removeLink(' + i + ')">Remover</button>';
+                editor.appendChild(div);
+            });
+            document.getElementById('modal').classList.add('active');
+        }
         function closeModal() { document.getElementById('modal').classList.remove('active'); }
         function addLink() { const data = loadData(); data.links.push({ title: "Novo link", url: "https://", icon: "🔗" }); saveData(data); openModal(); }
         function removeLink(index) { const data = loadData(); data.links.splice(index, 1); saveData(data); openModal(); }
-        function saveChanges() { const data = loadData(); data.name = document.getElementById('editName').value || "xhzyuri"; data.bio = document.getElementById('editBio').value || ""; const items = document.querySelectorAll('.link-item'); data.links = []; items.forEach(item => { const icon = item.querySelector('[data-field="icon"]').value; const title = item.querySelector('[data-field="title"]').value; const url = item.querySelector('[data-field="url"]').value; if (title && url) data.links.push({ icon, title, url }); }); saveData(data); closeModal(); render(); }
+        function saveChanges() {
+            const data = loadData();
+            data.name = document.getElementById('editName').value || "xhzyuri";
+            data.bio = document.getElementById('editBio').value || "";
+            const items = document.querySelectorAll('.link-item');
+            data.links = [];
+            items.forEach(item => {
+                const icon = item.querySelector('[data-field="icon"]').value;
+                const title = item.querySelector('[data-field="title"]').value;
+                const url = item.querySelector('[data-field="url"]').value;
+                if (title && url) data.links.push({ icon, title, url });
+            });
+            saveData(data);
+            closeModal();
+            render();
+        }
         render();
     </script>
 </body>
